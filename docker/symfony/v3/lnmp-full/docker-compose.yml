@@ -1,0 +1,78 @@
+version: '2'
+
+services:
+    db:
+        image: mysql:5.7
+        ports:
+            - "3306:3306"
+        command: mysqld --sql_mode=""
+        volumes:
+            - ${DB_PATH}:/var/lib/mysql
+        environment:
+            MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+            MYSQL_DATABASE: ${MYSQL_DATABASE}
+            MYSQL_USER: ${MYSQL_USER}
+            MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+        networks:
+            static-network:
+                ipv4_address: 172.100.0.7
+    php:
+        build:
+            context: php7-fpm
+            args:
+                TIMEZONE: ${TIMEZONE}
+        volumes:
+            - ${SYMFONY_APP_PATH}:/var/www/symfony
+            - ./logs/symfony:/var/www/symfony/app/logs
+        mem_limit: 2g
+        mem_reservation: 1g
+        networks:
+            static-network:
+                ipv4_address: 172.100.0.6
+    nginx:
+        build: nginx
+        ports:
+            - 80:80
+        restart: "no"
+        volumes_from:
+            - php
+        volumes:
+            - ./logs/nginx/:/var/log/nginx
+        networks:
+            static-network:
+                ipv4_address: 172.100.0.5
+    elk:
+        image: willdurand/elk
+        ports:
+            - 81:80
+        volumes:
+            - ./elk/logstash:/etc/logstash
+            - ./elk/logstash/patterns:/opt/logstash/patterns
+        volumes_from:
+            - php
+            - nginx
+        networks:
+            static-network:
+                ipv4_address: 172.100.0.4
+    phpmyadmin:
+        image: phpmyadmin/phpmyadmin
+        depends_on:
+            - db
+        environment:
+            - PMA_ARBITRARY=1
+        restart: "no"
+        ports:
+            - 8080:80
+        volumes:
+            - /sessions:/sessions
+        networks:
+            static-network:
+                ipv4_address: 172.100.0.3
+
+networks:
+    static-network:
+        driver: bridge
+        ipam:
+            config:
+                - subnet: 172.100.0.0/16
+                  gateway: 172.100.0.1

@@ -1,0 +1,47 @@
+version: '2'
+
+services:
+  mysql:
+    image: mysql
+    restart: on-failure
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    networks:
+      static-network:
+        ipv4_address: 172.30.0.2
+  php:
+    build:
+      context: .
+      dockerfile: php/Dockerfile
+    restart: on-failure
+    user: ${LOCAL_USER}
+    networks:
+      static-network:
+        ipv4_address: 172.30.0.3
+
+  nginx:
+    image: nginx:1.15.3-alpine
+    restart: on-failure
+    depends_on:
+      - php
+    networks:
+      static-network:
+        ipv4_address: 172.30.0.4
+
+  adminer:
+    image: adminer
+    restart: on-failure
+    networks:
+      static-network:
+        ipv4_address: 172.30.0.5
+
+networks:
+  static-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/16
+          gateway: 172.30.0.1

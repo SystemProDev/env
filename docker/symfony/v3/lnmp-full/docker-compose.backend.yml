@@ -1,0 +1,10 @@
+version: '2'
+
+services:
+    chrome-headless:
+        build: chrome-headless
+        mem_limit: 2g
+        mem_reservation: 1g
+        networks:
+            static-network:
+                ipv4_address: 172.100.0.2
